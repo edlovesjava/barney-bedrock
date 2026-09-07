@@ -128,6 +128,12 @@ than `sed` for edits. Tools run in the checkout directory only. Paths outside
 the checkout are rejected. `run_command` has a per-call timeout and truncated
 output.
 
+Tool input schemas are kept deliberately simple: top-level `object`, only
+`type`, `properties`, `required`, flat property types, no `$defs`, `anyOf`,
+`default`, or nested objects. Amazon Nova rejects anything richer, and the
+simpler shape helps every other model too. A schema linter in the tool layer
+enforces this at import time.
+
 ### 5.4 GitHub integration
 
 Via the GitHub REST API using a GitHub App installation token (or PAT in
@@ -148,7 +154,7 @@ opening a non-draft PR and report the results in the PR body.
 
 | Setting | v1 default | Source |
 |---|---|---|
-| `BARNEY_MODEL` | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (to confirm against `barney models`) | env / flag |
+| `BARNEY_MODEL` | `us.amazon.nova-2-lite-v1:0` (confirm exact profile id with `check_model_access.py`) | env / flag |
 | `BARNEY_REVIEW_MODEL` | same as `BARNEY_MODEL` | env / flag |
 | `AWS_REGION` | `us-east-1` | env |
 | `BARNEY_HARNESS` | `native` | env / flag |
@@ -157,9 +163,13 @@ opening a non-draft PR and report the results in the PR body.
 | `BARNEY_MAX_INPUT_TOKENS` | 3,000,000 cumulative per run | env / flag |
 | `BARNEY_MAX_USD` | 5.00 per run, computed from a price table in config | env / flag |
 
-The default model is whatever the newest Claude Sonnet available in the
-account turns out to be. It is set once Phase 0 has run
-`check_model_access.py` and not guessed here.
+Anthropic and OpenAI models are not available in this account, so the default
+is Amazon Nova 2 Lite: GA, Amazon-owned (no marketplace entitlement), 1M
+context, reasoning and tool use, cheap. It is the "get the loop working" model.
+The comparison set for Phase 4 is the stronger open-weight coders Bedrock
+serves on demand: Kimi K2.5, GLM 4.7, Qwen3 Coder Next, DeepSeek V3.2,
+MiniMax M2.1, plus Nova 2 Pro if it has reached GA. Exact profile ids come
+from the check script, not from this document.
 
 ## 7. Prompts
 

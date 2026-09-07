@@ -6,7 +6,7 @@ Usage:
     python scripts/check_model_access.py --region us-east-1 --smoke
     python scripts/check_model_access.py --region us-east-1 --provider anthropic
 
-For each on-demand text model from the selected providers it prints the
+For each on-demand text model (optionally filtered by provider prefix) it prints the
 authorization / entitlement / region availability reported by
 bedrock:GetFoundationModelAvailability, plus the cross-region inference
 profile id (us.<model-id>) you should pass to the agent when one exists.
@@ -26,13 +26,14 @@ import sys
 import boto3
 from botocore.exceptions import ClientError
 
-DEFAULT_PROVIDERS = ("anthropic", "amazon", "meta", "mistral", "deepseek", "openai", "qwen")
+# Model-id prefixes. Default is every provider; filter with --provider (e.g. amazon, qwen, moonshotai, zai, deepseek, minimax).
+DEFAULT_PROVIDERS: tuple[str, ...] = ()
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--region", default="us-east-1")
-    ap.add_argument("--provider", action="append", help="repeatable; default: common text-model providers")
+    ap.add_argument("--provider", action="append", help="model-id prefix filter, repeatable; default: all providers")
     ap.add_argument("--smoke", action="store_true", help="send a 1-token Converse call to each available model")
     ap.add_argument("--all", action="store_true", help="include models with no cross-region profile and legacy models")
     args = ap.parse_args()
@@ -64,7 +65,7 @@ def main() -> int:
     rows = []
     for m in models:
         mid = m["modelId"]
-        if not mid.split(".")[0].lower() in providers:
+        if providers and mid.split(".")[0].lower() not in providers:
             continue
         if not args.all and m.get("modelLifecycle", {}).get("status") == "LEGACY":
             continue
