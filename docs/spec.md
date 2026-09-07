@@ -154,8 +154,8 @@ opening a non-draft PR and report the results in the PR body.
 
 | Setting | v1 default | Source |
 |---|---|---|
-| `BARNEY_MODEL` | `us.amazon.nova-2-lite-v1:0` (confirm exact profile id with `check_model_access.py`) | env / flag |
-| `BARNEY_REVIEW_MODEL` | same as `BARNEY_MODEL` | env / flag |
+| `BARNEY_MODEL` | `us.amazon.nova-2-lite-v1:0` while debugging, `zai.glm-5` once the loop works (see `docs/models.md`) | env / flag |
+| `BARNEY_REVIEW_MODEL` | `qwen.qwen3-coder-next` | env / flag |
 | `AWS_REGION` | `us-east-1` | env |
 | `BARNEY_HARNESS` | `native` | env / flag |
 | `BARNEY_MAX_TURNS` | 60 | env / flag |
@@ -166,10 +166,10 @@ opening a non-draft PR and report the results in the PR body.
 Anthropic and OpenAI models are not available in this account, so the default
 is Amazon Nova 2 Lite: GA, Amazon-owned (no marketplace entitlement), 1M
 context, reasoning and tool use, cheap. It is the "get the loop working" model.
-The comparison set for Phase 4 is the stronger open-weight coders Bedrock
-serves on demand: Kimi K2.5, GLM 4.7, Qwen3 Coder Next, DeepSeek V3.2,
-MiniMax M2.1, plus Nova 2 Pro if it has reached GA. Exact profile ids come
-from the check script, not from this document.
+The account inventory (`my-models.json`, analysed in `docs/models.md`) shows
+GLM-5, Kimi K2.5, Qwen3 Coder Next, Devstral 2, DeepSeek V3.2 and MiniMax
+M2.5 served on demand in us-east-1. Nova 2 Pro is not offered in the region.
+GLM-5 is the intended production coder; Nova 2 Lite is for harness debugging.
 
 ## 7. Prompts
 
