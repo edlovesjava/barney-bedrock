@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  GitHub Actions OIDC provider and a role that lets barney workflows in the
+  listed repositories call Amazon Bedrock. Deploy once per account:
+    aws cloudformation deploy --stack-name barney-github-oidc \
+      --template-file infra/iam/github-oidc.yaml \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --parameter-overrides 'SubjectPatterns=repo:edlovesjava/aiotp1:*,repo:edlovesjava/barney-bedrock:*'
+  Then set repo variable AWS_ROLE_ARN to the RoleArn output.
+
+Parameters:
+  SubjectPatterns:
+    Type: CommaDelimitedList
+    Description: >
+      OIDC subject patterns allowed to assume the role, e.g.
+      repo:owner/name:* (any branch/event of that repo) or
+      repo:owner/name:ref:refs/heads/main
+  CreateOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Set false if the account already has the GitHub OIDC provider
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  GitHubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  BarneyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: barney-github-actions
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubOidc
+                - !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Ref SubjectPatterns
+      Policies:
+        - PolicyName: bedrock-invoke
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Invoke
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  # Cross-region inference profiles route to foundation models in
+                  # other US regions, so both the profile and the models are needed.
+                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*
+                  - arn:aws:bedrock:*::foundation-model/*
+              - Sid: Discover
+                Effect: Allow
+                Action:
+                  - bedrock:ListFoundationModels
+                  - bedrock:ListInferenceProfiles
+                  - bedrock:GetFoundationModelAvailability
+                  - bedrock:GetInferenceProfile
+                Resource: "*"
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt BarneyRole.Arn

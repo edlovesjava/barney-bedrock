@@ -49,18 +49,18 @@ status screen") opens a PR whose body shows `pio run` passing.
 
 ## Phase 2: Run in GitHub Actions
 
-- [ ] `images/base/Dockerfile` (python 3.12 slim, git, AWS CLI, barney) and
+- [x] `images/base/Dockerfile` (python 3.12 slim, git, AWS CLI, barney) and
       `images/platformio/Dockerfile` (base + PlatformIO + `espressif32`
       pre-installed so a cold `pio run` needs no downloads).
-- [ ] `.github/workflows/images.yml` in this repo: build and push both to
+- [x] `.github/workflows/images.yml` in this repo: build and push both to
       GHCR on push to `main`, tags `sha-<short>` and `latest`.
 - [ ] Verify locally: `docker run --rm -v $PWD:/work -w /work
       ghcr.io/edlovesjava/barney-platformio barney code ...` against aiotp1
       produces the same result as the Phase 1 laptop run.
-- [ ] `infra/iam/github-oidc.yaml`: OIDC provider, role trusting
+- [x] `infra/iam/github-oidc.yaml` (drafted; deploy is a Phase 0 manual step): OIDC provider, role trusting
       `repo:edlovesjava/aiotp1:*`, policy allowing `bedrock:InvokeModel` and
       `bedrock:InvokeModelWithResponseStream` on the chosen profile ARNs.
-- [ ] `.github/workflows/agent-code.yml` template: trigger on `issues:
+- [x] `workflows/agent-code.yml` template: trigger on `issues:
       labeled` with label `agent`; `container:` image from the target's
       `barney.toml`; checkout; `aws-actions/configure-aws-credentials` with
       the role; run `barney code`; upload run record; write job summary.

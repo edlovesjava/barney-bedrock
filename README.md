@@ -12,6 +12,9 @@ Target repo for experiments: [edlovesjava/aiotp1](https://github.com/edlovesjava
 | [docs/spec.md](docs/spec.md) | What the system is and is not, roles, interfaces, guardrails |
 | [docs/plan.md](docs/plan.md) | Phased implementation plan with a verification gate per phase |
 | [docs/decisions.md](docs/decisions.md) | Decisions made so far and why |
+| [images/](images/) | Dockerfiles: `barney` base and `barney-platformio`, published to GHCR by `images.yml` |
+| [infra/iam/github-oidc.yaml](infra/iam/github-oidc.yaml) | CloudFormation: GitHub OIDC provider + Bedrock role for Actions |
+| [workflows/agent-code.yml](workflows/agent-code.yml) | Workflow template to copy into a target repo |
 | [docs/models.md](docs/models.md) | Model shortlist for this account and region, derived from `my-models.json` |
 
 ## Status
