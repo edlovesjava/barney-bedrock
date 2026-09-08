@@ -73,19 +73,27 @@ status screen") opens a PR whose body shows `pio run` passing.
 involvement, inside the published image. Run record artifact present and
 names the image digest.
 
-## Phase 3: Reviewer
+## Phase 3: Reviewer and passes
 
 - [ ] `roles/reviewer.py` + prompt. Tools: read-only fs, shell (for running
       verification), github review submit (pending review, inline comments,
-      submit with verdict).
+      submit with verdict), resolve own threads on re-review.
 - [ ] `barney review --repo --pr N`.
+- [ ] Coder **fix pass**: `barney code --pr N` reads unresolved threads and
+      new comments, pushes fixes, replies per thread, re-requests review.
+- [ ] Pass markers in PR comments and a `passes` module that reconstructs
+      pass history from the PR (GraphQL review threads + comment markers).
+- [ ] Trigger plumbing in the workflow templates: `issue_comment` with
+      `/barney fix` and `/barney review`, labels `agent:fix` and
+      `agent:review`, author-association check, `[loop] rounds` gate.
 - [ ] GitHub App `barney-reviewer` (distinct identity is required to review
       the coder's PR meaningfully).
 - [ ] `.github/workflows/agent-review.yml`: on `pull_request: opened` where
       `github.event.pull_request.user.login` is the coder identity.
 
-**Gate:** the Phase 2 PR receives an inline review from the reviewer identity.
-Success criteria 1 and 2 in the spec are met.
+**Gate:** the Phase 2 PR receives an inline review from the reviewer
+identity; `/barney fix` produces a commit and thread replies; `/barney
+review` re-reviews and resolves fixed threads. Success criteria 1, 2 and 2b.
 
 ## Phase 4: Model and harness comparison
 
@@ -102,8 +110,8 @@ and two harnesses on the same three issues.
 
 ## Phase 5: Review loop and multi-agent
 
-- [ ] Coder responds to `request_changes` and pushes a revision (bounded
-      rounds).
+- [ ] `[loop] rounds > 0`: automatic reviewer-to-coder-to-reviewer cycles
+      without a human trigger, with the per-PR caps enforced.
 - [ ] Orchestrator role: split an epic issue into sub-issues, run coders in
       parallel on separate branches, integrate.
 - [ ] Reviewer specialisations (correctness, embedded constraints, style) as
