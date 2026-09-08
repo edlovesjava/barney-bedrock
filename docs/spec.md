@@ -17,14 +17,20 @@ swapping parts rather than for polish:
   Bedrock, Strands Agents, others) behind one interface
 - grow from single agent to **multi-agent orchestration** without rewriting
   the tool layer or the GitHub integration
+- work on **any target stack**. The first proof of concept is PlatformIO and
+  ESP32 firmware, but the same agent must handle a Java REST service or a
+  React and TypeScript front end with no change to agent code, only to the
+  runtime image and the target's `CLAUDE.md`
 
 ## 2. Non-goals (for the first working version)
 
 - Merging PRs. Never. A human merges.
 - Addressing review comments in a loop. Coder opens PR, reviewer reviews once,
   human merges. The review loop is a later phase.
-- Running on hardware. The target project is firmware, but verification in v1
+- Running on hardware. The first target is firmware, but verification in v1
   is compile plus native unit tests, not flashing a board.
+- Non-firmware targets in v1. The design must not preclude them (see 5.5 and
+  5.6), but the first PR is on aiotp1.
 - Cost optimisation, prompt caching tuning, evals. Later.
 - Security hardening beyond the guardrails in section 8. This is a personal
   account and a throwaway target repo.
@@ -148,10 +154,35 @@ submit reviews. No admin, no actions, no secrets.
 ### 5.5 Verification inside the target
 
 The agent does not decide what "verified" means. The target repo declares it
-in `CLAUDE.md` under a `## Verification` heading: the exact commands to build
-and test. For aiotp1 that is `pio run` for firmware compile and
-`pio test -e native` for host unit tests. The coder must run these before
-opening a non-draft PR and report the results in the PR body.
+in `CLAUDE.md` under a `## Verification` heading: the exact commands to build,
+lint and test. For aiotp1 that is `pio run` for firmware compile and
+`pio test -e native` for host unit tests; for a Java service it would be
+`./mvnw verify`; for a React app `npm ci && npm test && npm run build`. The
+agent never hard-codes any of these. The coder must run them before opening
+a non-draft PR and report the results in the PR body.
+
+### 5.6 Runtime and images
+
+Barney runs inside a container image, everywhere: locally with `docker run`,
+in GitHub Actions as a `container:` job, and later on ECS Fargate. One image
+per target stack, all sharing a base:
+
+| Image | Contents | For |
+|---|---|---|
+| `ghcr.io/edlovesjava/barney:<tag>` | `python:3.12-slim`, git, barney, AWS CLI | base; pure-Python or shell targets |
+| `ghcr.io/edlovesjava/barney-platformio:<tag>` | base + PlatformIO + `espressif32` platform and toolchains pre-installed | aiotp1 and other firmware targets |
+| `ghcr.io/edlovesjava/barney-jdk:<tag>` | base + Temurin JDK 21 + Maven and Gradle | Java / REST targets (later) |
+| `ghcr.io/edlovesjava/barney-node:<tag>` | base + Node 22 + pnpm | React / TypeScript targets (later) |
+
+The target's `barney.toml` names its image under `[runtime] image = ...`. The
+Actions workflow template reads that value, so adding a new stack is a new
+Dockerfile in this repo plus one line in the target. Images are built and
+pushed to GHCR by a workflow in this repo on every push to `main`, tagged
+with the short SHA and `latest`. The run record stores the image digest.
+
+Hosted runner specs for public repos are 4 vCPU, 16 GB RAM, 14 GB disk,
+which is ample. The VM is the sandbox; the image is for reproducibility and
+parity, not isolation.
 
 ## 6. Configuration
 
@@ -178,6 +209,9 @@ model   = "qwen.qwen3-coder-next"
 harness = "native"
 max_turns = 20
 max_usd   = 1.00
+
+[runtime]
+image = "ghcr.io/edlovesjava/barney-platformio:latest"
 
 [aws]
 region = "us-east-1"

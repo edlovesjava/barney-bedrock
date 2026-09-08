@@ -48,21 +48,30 @@ status screen") opens a PR whose body shows `pio run` passing.
 
 ## Phase 2: Run in GitHub Actions
 
+- [ ] `images/base/Dockerfile` (python 3.12 slim, git, AWS CLI, barney) and
+      `images/platformio/Dockerfile` (base + PlatformIO + `espressif32`
+      pre-installed so a cold `pio run` needs no downloads).
+- [ ] `.github/workflows/images.yml` in this repo: build and push both to
+      GHCR on push to `main`, tags `sha-<short>` and `latest`.
+- [ ] Verify locally: `docker run --rm -v $PWD:/work -w /work
+      ghcr.io/edlovesjava/barney-platformio barney code ...` against aiotp1
+      produces the same result as the Phase 1 laptop run.
 - [ ] `infra/iam/github-oidc.yaml`: OIDC provider, role trusting
       `repo:edlovesjava/aiotp1:*`, policy allowing `bedrock:InvokeModel` and
       `bedrock:InvokeModelWithResponseStream` on the chosen profile ARNs.
 - [ ] `.github/workflows/agent-code.yml` template: trigger on `issues:
-      labeled` with label `agent`; checkout; `aws-actions/configure-aws-
-      credentials` with the role; install PlatformIO; `pip install
-      git+https://github.com/edlovesjava/barney-bedrock`; run `barney code`;
-      upload run record; write job summary. 60 min timeout.
+      labeled` with label `agent`; `container:` image from the target's
+      `barney.toml`; checkout; `aws-actions/configure-aws-credentials` with
+      the role; run `barney code`; upload run record; write job summary.
+      60 min timeout. No per-run toolchain install.
 - [ ] Copy workflow into `aiotp1`, set repo variables (`BARNEY_MODEL`,
       `AWS_ROLE_ARN`) and secret (`BARNEY_GITHUB_TOKEN`, or App credentials).
 - [ ] Optional now, required later: replace PAT with GitHub App
       `barney-coder` and mint installation tokens in the workflow.
 
 **Gate:** labelling an issue on `aiotp1` produces a PR with no human
-involvement. Run record artifact present.
+involvement, inside the published image. Run record artifact present and
+names the image digest.
 
 ## Phase 3: Reviewer
 
@@ -99,7 +108,10 @@ and two harnesses on the same three issues.
       parallel on separate branches, integrate.
 - [ ] Reviewer specialisations (correctness, embedded constraints, style) as
       parallel reviewers with a merge step.
-- [ ] Move compute to ECS Fargate if Actions limits bite.
+- [ ] Move compute to ECS Fargate if Actions limits bite (same image, new
+      task definition).
+- [ ] `images/jdk` and `images/node`, then a second target repo (Java REST
+      or React/TypeScript) to prove the agent is stack-agnostic.
 
 Not planned in detail yet. Revisit after Phase 4 data.
 
