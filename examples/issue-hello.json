@@ -1,0 +1,5 @@
+{
+  "number": 0,
+  "title": "Add a HELLO.md that explains what this repository is",
+  "body": "Create `docs/HELLO.md` with two or three sentences describing the project, taken from the README and the product spec if present. Keep it under 20 lines. Run the repository's verification commands before finishing, if a CLAUDE.md declares them."
+}

@@ -18,6 +18,7 @@ Needs: bedrock:ListFoundationModels, bedrock:ListInferenceProfiles,
 bedrock:GetFoundationModelAvailability, and for --smoke bedrock:InvokeModel
 on the profiles.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,7 +27,8 @@ import sys
 import boto3
 from botocore.exceptions import ClientError
 
-# Model-id prefixes. Default is every provider; filter with --provider (e.g. amazon, qwen, moonshotai, zai, deepseek, minimax).
+# Model-id prefixes. Default is every provider; filter with --provider
+# (e.g. amazon, qwen, moonshotai, zai, deepseek, minimax).
 DEFAULT_PROVIDERS: tuple[str, ...] = ()
 
 
@@ -94,14 +96,16 @@ def main() -> int:
     print()
     print(f"{len(usable)} model(s) usable now, {len(blocked)} need an access request or use-case form.")
     if blocked:
-        print("For NOT_AUTHORIZED Anthropic models: Bedrock console > Model catalog > pick the model > "
-              "Request access (one-time use-case form per account). Non-Anthropic marketplace models: "
-              "`aws bedrock list-foundation-model-agreement-offers --model-id <id>` then "
-              "`aws bedrock create-foundation-model-agreement --model-id <id> --offer-token <token>`.")
+        print(
+            "For NOT_AUTHORIZED Anthropic models: Bedrock console > Model catalog > pick the model > "
+            "Request access (one-time use-case form per account). Non-Anthropic marketplace models: "
+            "`aws bedrock list-foundation-model-agreement-offers --model-id <id>` then "
+            "`aws bedrock create-foundation-model-agreement --model-id <id> --offer-token <token>`."
+        )
 
     if args.smoke:
         print("\nSmoke test (1 token each):")
-        for mid, profile, *_ in usable:
+        for _mid, profile, *_ in usable:
             try:
                 out = runtime.converse(
                     modelId=profile,

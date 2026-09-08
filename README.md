@@ -14,7 +14,42 @@ Target repo for experiments: [edlovesjava/aiotp1](https://github.com/edlovesjava
 | [docs/decisions.md](docs/decisions.md) | Decisions made so far and why |
 | [docs/models.md](docs/models.md) | Model shortlist for this account and region, derived from `my-models.json` |
 
-## Quick start (Phase 0)
+## Status
+
+Phase 1 in progress: native Converse harness, sandboxed tools, per-role
+config, coder role, `barney code` CLI. Reviewer and passes come in Phase 3.
+
+## Run the coder locally (Phase 1)
+
+In the devcontainer (or any shell with Python 3.11+):
+
+```bash
+pip install -e '.[dev]'
+source scripts/aws_login.sh              # SSO -> AWS_PROFILE
+export BARNEY_GITHUB_TOKEN=github_pat_...  # fine-grained PAT scoped to the target repo
+
+# Offline dry run: no GitHub reads or writes, no push. Needs only Bedrock.
+barney code --repo edlovesjava/aiotp1 --issue-file examples/issue-hello.json \
+            --workdir ../aiotp1 --dry-run
+
+# Real issue, still no writes to GitHub:
+barney code --repo edlovesjava/aiotp1 --issue 1 --workdir ../aiotp1 --dry-run
+
+# The real thing: posts the plan comment, pushes a branch, opens the PR.
+barney code --repo edlovesjava/aiotp1 --issue 1 --workdir ../aiotp1
+```
+
+`--model`, `--harness` and `--region` override the coder role for one run.
+The target's `barney.toml` and `BARNEY_CODER_*` env vars are the other two
+layers (see `docs/spec.md` section 6). Every run writes `barney-run.json`.
+
+## Development
+
+```bash
+ruff check . && ruff format --check . && pytest -q
+```
+
+## Phase 0: model access
 
 ```bash
 python -m venv .venv && . .venv/bin/activate

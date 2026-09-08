@@ -27,17 +27,18 @@ check script.
 
 ## Phase 1: Native harness, local run, issue to PR (code)
 
-- [ ] `barney/` package skeleton with `pyproject.toml`, `ruff`, `pytest`.
-- [ ] `config.py`: per-role config (`RoleConfig` for coder and reviewer), loaded from defaults, target `barney.toml`, env, CLI. Unit tests for precedence.
-- [ ] `llm/converse.py`: Converse adapter, tool schema translation, usage
-      capture, retry on throttling. Unit tests with recorded fixtures.
-- [ ] `tools/fs.py`, `tools/shell.py`, `tools/git.py`: sandboxed to checkout,
+- [x] `barney/` package skeleton with `pyproject.toml`, `ruff`, `pytest`.
+- [x] `config.py`: per-role config (`RoleConfig` for coder and reviewer), loaded from defaults, target `barney.toml`, env, CLI. Unit tests for precedence.
+- [x] `llm/converse.py`: Converse adapter, tool schema translation, usage
+      capture, retry on throttling (botocore adaptive). Unit tests with a fake client.
+- [x] `tools/fs.py`, `tools/shell.py`, `tools/git.py`: sandboxed to checkout,
       workflow-dir write block, timeouts, output caps. Unit tests.
-- [ ] `tools/github.py`: read issue, comment, create PR (REST via `httpx`).
-- [ ] `harness/native.py`: the loop, caps, parallel tool execution.
-- [ ] `roles/coder.py` + prompt file. `run_record.py`.
-- [ ] `cli.py`: `barney models`, `barney code --repo edlovesjava/aiotp1
-      --issue N --workdir /path/to/checkout`.
+- [x] `tools/github.py`: read issue, comment, create PR (REST via `httpx`), GraphQL entry point.
+- [x] `harness/native.py`: the loop, caps, parallel read-only tool execution, nudge on silent stop.
+- [x] `roles/coder.py` + prompt file. `run_record.py`.
+- [x] `cli.py`: `barney code --repo edlovesjava/aiotp1 --issue N --workdir
+      /path/to/checkout` (plus `--issue-file` and `--dry-run` for offline testing).
+      `barney models` deferred: `scripts/check_model_access.py` covers it.
 - [ ] Seed `aiotp1` with the target skeleton (Phase 1 of its product spec) so
       the agent has a build to run. Done by hand or as the agent's very first
       issue with a human watching.
