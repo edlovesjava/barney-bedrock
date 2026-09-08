@@ -136,8 +136,11 @@ enforces this at import time.
 
 ### 5.4 GitHub integration
 
-Via the GitHub REST API using a GitHub App installation token (or PAT in
-Phase 1). The agent uses `git` over HTTPS with that token for push. Required
+Via the GitHub REST API. Auth is a **token provider** interface with two
+implementations: fine-grained PAT (Phases 1 and 2) and GitHub App installation
+token (from Phase 3, when a second identity is required for the reviewer).
+The default Actions `GITHUB_TOKEN` is never used, because PRs it opens do not
+trigger other workflows, which would stop the reviewer from firing. The agent uses `git` over HTTPS with that token for push. Required
 permissions: contents read/write, issues read/write, pull requests read/write,
 metadata read. The reviewer app additionally needs pull requests write to
 submit reviews. No admin, no actions, no secrets.
@@ -152,20 +155,51 @@ opening a non-draft PR and report the results in the PR body.
 
 ## 6. Configuration
 
-| Setting | v1 default | Source |
-|---|---|---|
-| `BARNEY_MODEL` | `us.amazon.nova-2-lite-v1:0` while debugging, `zai.glm-5` once the loop works (see `docs/models.md`) | env / flag |
-| `BARNEY_REVIEW_MODEL` | `qwen.qwen3-coder-next` | env / flag |
-| `AWS_REGION` | `us-east-1` | env |
-| `BARNEY_HARNESS` | `native` | env / flag |
-| `BARNEY_MAX_TURNS` | 60 | env / flag |
-| `BARNEY_MAX_TOOL_SECONDS` | 300 per call | env / flag |
-| `BARNEY_MAX_INPUT_TOKENS` | 3,000,000 cumulative per run | env / flag |
-| `BARNEY_MAX_USD` | 5.00 per run, computed from a price table in config | env / flag |
+Configuration is **per role**. The coder and the reviewer are independent
+agents that happen to share a codebase: each has its own model, harness,
+prompt, tool subset, and caps. Nothing forces them to match, and the run
+record captures both so a "GLM-5 coder reviewed by Qwen3 Coder Next" run is
+distinguishable from any other pairing.
 
-Anthropic and OpenAI models are not available in this account, so the default
-is Amazon Nova 2 Lite: GA, Amazon-owned (no marketplace entitlement), 1M
-context, reasoning and tool use, cheap. It is the "get the loop working" model.
+Precedence, lowest to highest: built-in defaults, `barney.toml` in the
+**target** repo (so each target can pin its own pairing), environment
+variables, CLI flags.
+
+```toml
+# barney.toml in the target repo (all keys optional)
+[coder]
+model   = "zai.glm-5"
+harness = "native"            # native | claude_code | strands (Phase 4)
+max_turns = 60
+max_usd   = 5.00
+
+[reviewer]
+model   = "qwen.qwen3-coder-next"
+harness = "native"
+max_turns = 20
+max_usd   = 1.00
+
+[aws]
+region = "us-east-1"
+```
+
+Environment variables are namespaced by role: `BARNEY_CODER_MODEL`,
+`BARNEY_CODER_HARNESS`, `BARNEY_REVIEWER_MODEL`, and so on. CLI flags are
+`--model` and `--harness` on the `barney code` and `barney review`
+subcommands, which only ever apply to the role being run.
+
+| Setting (per role) | Coder default | Reviewer default |
+|---|---|---|
+| `model` | `us.amazon.nova-2-lite-v1:0` while debugging, then `zai.glm-5` | `qwen.qwen3-coder-next` |
+| `harness` | `native` | `native` |
+| `max_turns` | 60 | 20 |
+| `max_tool_seconds` | 300 per call | 300 per call |
+| `max_input_tokens` | 3,000,000 cumulative | 1,000,000 cumulative |
+| `max_usd` | 5.00 | 1.00 |
+| `thinking` | provider default (off) | provider default (off) |
+
+Shared settings: `aws.region` (`us-east-1`), GitHub auth (section 5.4).
+
 The account inventory (`my-models.json`, analysed in `docs/models.md`) shows
 GLM-5, Kimi K2.5, Qwen3 Coder Next, Devstral 2, DeepSeek V3.2 and MiniMax
 M2.5 served on demand in us-east-1. Nova 2 Pro is not offered in the region.
@@ -216,7 +250,7 @@ approve if tests were not run.
 
 ## 11. Open questions
 
-1. GitHub App vs PAT for Phase 1. Proposal: PAT to get moving, App in Phase 2.
+1. ~~GitHub App vs PAT~~ Decided: PAT for Phases 1 and 2, Apps from Phase 3 (decision 14).
 2. Should the coder be allowed network access beyond GitHub and Bedrock during
    a run (PlatformIO downloads toolchains and libraries from its registry)?
    Proposal: yes for now, since the target build needs it.

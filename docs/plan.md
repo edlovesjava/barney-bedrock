@@ -28,6 +28,7 @@ check script.
 ## Phase 1: Native harness, local run, issue to PR (code)
 
 - [ ] `barney/` package skeleton with `pyproject.toml`, `ruff`, `pytest`.
+- [ ] `config.py`: per-role config (`RoleConfig` for coder and reviewer), loaded from defaults, target `barney.toml`, env, CLI. Unit tests for precedence.
 - [ ] `llm/converse.py`: Converse adapter, tool schema translation, usage
       capture, retry on throttling. Unit tests with recorded fixtures.
 - [ ] `tools/fs.py`, `tools/shell.py`, `tools/git.py`: sandboxed to checkout,
