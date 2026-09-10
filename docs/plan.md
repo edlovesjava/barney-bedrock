@@ -47,6 +47,10 @@ check script.
 `docs/HELLO.md`") opens a PR with a run record. Then a real issue ("OLED
 status screen") opens a PR whose body shows `pio run` passing.
 
+- [x] 2026-09-10: dry run of the HELLO.md issue passed end to end on Nova 2
+      Lite from the Codespace (see `docs/runs.md`). Remaining: the same issue
+      for real (PAT, push, PR), then the OLED issue.
+
 ## Phase 2: Run in GitHub Actions
 
 - [x] `images/base/Dockerfile` (python 3.12 slim, git, AWS CLI, barney) and

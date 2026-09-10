@@ -75,7 +75,13 @@ def cmd_review(a: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="barney", description="Autonomous coding agent on AWS Bedrock")
     p.add_argument("--version", action="version", version=f"barney {__version__}")
-    p.add_argument("-v", "--verbose", action="store_true")
+    p.add_argument("-v", "--verbose", action="store_true", help="debug logging on the console")
+    p.add_argument(
+        "--log",
+        default="barney-run.log",
+        metavar="PATH",
+        help="write a full DEBUG log to this file (default barney-run.log; '' to disable)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     c = sub.add_parser("code", help="implement an issue and open a PR")
@@ -90,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--harness", help="override coder harness")
     c.add_argument("--region", help="override AWS region")
     c.add_argument("--dry-run", action="store_true", help="no GitHub writes, no push")
+    c.add_argument("--allow-dirty", action="store_true", help="start even if the workdir has uncommitted changes")
+    c.add_argument("--log", dest="log_sub", metavar="PATH", help="same as the global --log")
     c.add_argument("--record", default="barney-run.json", help="where to write the run record")
     c.set_defaults(fn=cmd_code)
 

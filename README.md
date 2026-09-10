@@ -43,6 +43,9 @@ barney code --repo edlovesjava/aiotp1 --issue 1 --workdir ../aiotp1
 ```
 
 `--model`, `--harness` and `--region` override the coder role for one run.
+`-v` turns on debug output on the console; a full DEBUG log always goes to
+`barney-run.log` (change with `--log PATH`, disable with `--log ''`).
+`--allow-dirty` lets a run start on a checkout with uncommitted changes.
 The target's `barney.toml` and `BARNEY_CODER_*` env vars are the other two
 layers (see `docs/spec.md` section 6). Every run writes `barney-run.json`.
 

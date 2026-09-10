@@ -107,6 +107,15 @@ def head_sha(workdir: Path) -> str:
     return _git(workdir, "rev-parse", "HEAD").strip()
 
 
+def resolve_base(workdir: Path, base_branch: str) -> str:
+    """Prefer the remote-tracking base (fresh after a fetch), else the local branch, else HEAD."""
+    for ref in (f"origin/{base_branch}", base_branch):
+        r = subprocess.run(["git", "rev-parse", "--verify", "-q", ref], cwd=workdir, capture_output=True, text=True)
+        if r.returncode == 0:
+            return ref
+    return "HEAD"
+
+
 def create_branch(workdir: Path, name: str, base: str | None = None) -> None:
     args = ["checkout", "-q", "-B", name]
     if base:

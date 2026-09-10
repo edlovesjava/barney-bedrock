@@ -84,6 +84,10 @@ def build_prompt(issue: dict[str, Any], conventions: str) -> str:
     )
 
 
+class PreflightError(RuntimeError):
+    pass
+
+
 @dataclass
 class CoderResult:
     outcome: Outcome
@@ -102,13 +106,24 @@ def run_coder(
     record: RunRecord,
     dry_run: bool = False,
     base_branch: str = "main",
+    allow_dirty: bool = False,
 ) -> CoderResult:
     number = issue["number"]
     branch = f"agent/issue-{number}-{slugify(issue['title'])}"
 
-    # Branch off the base so a fix pass on an existing branch is a separate code path later.
-    git.create_branch(workdir, branch)
+    # Pre-flight: a new pass must start from a clean tree on the base branch. Reusing a dirty
+    # checkout (e.g. a previous aborted run) would silently fold stale edits into this pass.
+    if git.has_uncommitted(workdir):
+        if not allow_dirty:
+            raise PreflightError(
+                f"{workdir} has uncommitted changes; commit, stash or `git checkout -- .` first "
+                "(or pass allow_dirty to fold them in)"
+            )
+        record.log("note", preflight="dirty worktree allowed")
+    base_ref = git.resolve_base(workdir, base_branch)
+    git.create_branch(workdir, branch, base_ref)
     record.branch = branch
+    record.log("note", base=base_ref, base_sha=git.head_sha(workdir))
 
     system, phash = load_prompt("coder")
     record.prompt_hash = phash

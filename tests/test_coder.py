@@ -1,9 +1,11 @@
 import json
 import subprocess
 
+import pytest
+
 from barney.config import RoleConfig
 from barney.harness import Outcome
-from barney.roles.coder import build_prompt, run_coder, slugify
+from barney.roles.coder import PreflightError, build_prompt, run_coder, slugify
 from barney.run_record import RunRecord
 
 
@@ -75,6 +77,57 @@ def test_protected_change_blocks_push(repo):
     )
     assert res.outcome.status == "error" and "protected" in res.outcome.final_text
     assert res.pr_url == ""
+
+
+def test_preflight_refuses_dirty_worktree(repo):
+    (repo / "README.md").write_text("dirty\n")
+    rec = RunRecord("coder", "m", "fake", "o/r", "issue:1")
+    with pytest.raises(PreflightError, match="uncommitted"):
+        run_coder(
+            harness=FakeHarness(lambda t: None),
+            cfg=RoleConfig(model="m"),
+            workdir=repo,
+            issue={"number": 1, "title": "x", "body": ""},
+            gh=None,
+            repo="o/r",
+            record=rec,
+            dry_run=True,
+        )
+    # allow_dirty folds the change in
+    res = run_coder(
+        harness=FakeHarness(lambda t: None),
+        cfg=RoleConfig(model="m"),
+        workdir=repo,
+        issue={"number": 1, "title": "x", "body": ""},
+        gh=None,
+        repo="o/r",
+        record=rec,
+        dry_run=True,
+        allow_dirty=True,
+    )
+    assert res.outcome.status == "success"
+
+
+def test_branch_starts_from_base_not_current_head(repo):
+    # Simulate a stale agent branch with an extra commit, then a new pass on the same issue.
+    subprocess.run(["git", "checkout", "-q", "-b", "agent/issue-1-x"], cwd=repo, check=True)
+    (repo / "stale.txt").write_text("stale\n")
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@e", "commit", "-q", "-m", "stale"], cwd=repo, check=True
+    )
+    rec = RunRecord("coder", "m", "fake", "o/r", "issue:1")
+    run_coder(
+        harness=FakeHarness(lambda t: None),
+        cfg=RoleConfig(model="m"),
+        workdir=repo,
+        issue={"number": 1, "title": "x", "body": ""},
+        gh=None,
+        repo="o/r",
+        record=rec,
+        dry_run=True,
+    )
+    assert not (repo / "stale.txt").exists()  # branch was recreated from main, not from the stale head
 
 
 def test_build_prompt_includes_conventions():
