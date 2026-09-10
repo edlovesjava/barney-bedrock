@@ -109,14 +109,29 @@ def main(argv: list[str] | None = None) -> int:
 
     a = p.parse_args(argv)
     verbose = a.verbose or getattr(a, "verbose_sub", False)
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        stream=sys.stderr,
-    )
-    logging.getLogger("botocore").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    log_path = getattr(a, "log_sub", None) or a.log
+    _setup_logging(verbose, log_path)
     return a.fn(a)
+
+
+def _setup_logging(verbose: bool, log_path: str | None) -> None:
+    """Console at INFO (DEBUG with -v); full DEBUG log to a file when log_path is set."""
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.setLevel(logging.DEBUG)
+    console = logging.StreamHandler(sys.stderr)
+    console.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console.setFormatter(fmt)
+    root.addHandler(console)
+    if log_path:
+        fh = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(fmt)
+        root.addHandler(fh)
+        logging.info("logging to %s", Path(log_path).resolve())
+    for noisy in ("botocore", "boto3", "urllib3", "httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
 if __name__ == "__main__":
