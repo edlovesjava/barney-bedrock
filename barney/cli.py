@@ -25,6 +25,8 @@ def _harness(name: str, model: str, region: str, thinking: str):
 
 def cmd_code(a: argparse.Namespace) -> int:
     workdir = Path(a.workdir).resolve()
+    if not (workdir / ".git").exists():
+        raise SystemExit(f"--workdir {workdir} is not a git checkout")
     overrides = {"coder": {k: v for k, v in (("model", a.model), ("harness", a.harness)) if v}}
     if a.region:
         overrides["aws"] = {"region": a.region}
@@ -77,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     c = sub.add_parser("code", help="implement an issue and open a PR")
+    c.add_argument("-v", "--verbose", dest="verbose_sub", action="store_true", help="debug logging")
     c.add_argument("--repo", required=True, help="owner/name")
     g = c.add_mutually_exclusive_group(required=True)
     g.add_argument("--issue", type=int, help="issue number")
@@ -91,13 +94,15 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(fn=cmd_code)
 
     r = sub.add_parser("review", help="review a PR (Phase 3)")
+    r.add_argument("-v", "--verbose", dest="verbose_sub", action="store_true")
     r.add_argument("--repo", required=True)
     r.add_argument("--pr", type=int, required=True)
     r.set_defaults(fn=cmd_review)
 
     a = p.parse_args(argv)
+    verbose = a.verbose or getattr(a, "verbose_sub", False)
     logging.basicConfig(
-        level=logging.DEBUG if a.verbose else logging.INFO,
+        level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         stream=sys.stderr,
     )
